@@ -18,13 +18,13 @@ import {
 
 // --- Default Data ---
 const PRODUCTS = [
-  { id: '1', name: 'Mini Tulip Pot', desc: 'Pink pipe cleaner tulips in a cozy handmade pot.', price: 299, category: 'flower-pot', img: 'https://drive.google.com/uc?id=1ssR-b9tp_lbR7L2LrfgqObSTvvdaEFU_' },
-  { id: '2', name: 'Mini Sunflower Pot', desc: 'Bright handcrafted sunflower in a cozy pot.', price: 299, category: 'flower-pot', img: 'https://drive.google.com/uc?id=1nfD6ZqxDODntzwVfSlkC6PmkYQrptWDR' },
-  { id: '3', name: 'Set 01', desc: 'Ribbed lidded jar + round bowl on tray.', price: 180, category: 'gypsum', img: 'https://drive.google.com/uc?id=1Sp8t7nbpm2Of6WcqB0c6vKmtOIRv047u' },
-  { id: '4', name: 'Set 02', desc: 'Ribbed vase + ribbed lidded jar on tray.', price: 280, category: 'gypsum', img: 'https://drive.google.com/uc?id=1WmzFWNk27PwJNFAYJ-NI1P-EgB0NeCaY' },
-  { id: '5', name: 'Set 03', desc: 'Shell shape bowl + ribbed lidded jar on tray.', price: 250, category: 'gypsum', img: 'https://drive.google.com/uc?id=12L5gcxqQ8BiQKIGV_-FG-IldR8fb_q42' },
-  { id: '6', name: 'Set 04', desc: 'Shell shape bowl + ribbed vase on tray.', price: 270, category: 'gypsum', img: 'https://drive.google.com/uc?id=1T5vHx1f0paROCvjj6qokjdzpZ9qLLS0V' },
-  { id: '7', name: 'Set 05', desc: 'Two shell shape bowls on tray.', price: 250, category: 'gypsum', img: 'https://drive.google.com/uc?id=1tbwWxw2M4WMdBHn7GTGOlF5jSsL7BRiG' },
+  { id: '1', name: 'Mini Tulip Pot', desc: 'Pink pipe cleaner tulips in a cozy handmade pot.', price: 299, category: 'flower-pot', img: 'https://drive.google.com/thumbnail?id=1ssR-b9tp_lbR7L2LrfgqObSTvvdaEFU_&sz=w1000' },
+  { id: '2', name: 'Mini Sunflower Pot', desc: 'Bright handcrafted sunflower in a cozy pot.', price: 299, category: 'flower-pot', img: 'https://drive.google.com/thumbnail?id=1nfD6ZqxDODntzwVfSlkC6PmkYQrptWDR&sz=w1000' },
+  { id: '3', name: 'Set 01', desc: 'Ribbed lidded jar + round bowl on tray.', price: 180, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=1Sp8t7nbpm2Of6WcqB0c6vKmtOIRv047u&sz=w1000' },
+  { id: '4', name: 'Set 02', desc: 'Ribbed vase + ribbed lidded jar on tray.', price: 280, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=1WmzFWNk27PwJNFAYJ-NI1P-EgB0NeCaY&sz=w1000' },
+  { id: '5', name: 'Set 03', desc: 'Shell shape bowl + ribbed lidded jar on tray.', price: 250, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=12L5gcxqQ8BiQKIGV_-FG-IldR8fb_q42&sz=w1000' },
+  { id: '6', name: 'Set 04', desc: 'Shell shape bowl + ribbed vase on tray.', price: 270, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=1T5vHx1f0paROCvjj6qokjdzpZ9qLLS0V&sz=w1000' },
+  { id: '7', name: 'Set 05', desc: 'Two shell shape bowls on tray.', price: 250, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=1tbwWxw2M4WMdBHn7GTGOlF5jSsL7BRiG&sz=w1000' },
 ];
 
 const FEATURES = [
@@ -189,7 +189,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               {/* === Logo Placeholder in Navbar === */}
               <img 
-                src="https://drive.google.com/uc?id=1xhhZNB2_xH_YS91vtsQEJ9mwJth2oOw6" 
+                src="https://drive.google.com/thumbnail?id=1xhhZNB2_xH_YS91vtsQEJ9mwJth2oOw6&sz=w1000" 
                 alt="Jhury Craft Logo" 
                 className="w-8 h-8 rounded-full object-cover border border-clay-200 shadow-sm"
                 referrerPolicy="no-referrer"
@@ -309,11 +309,11 @@ export default function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {PRODUCTS.filter(p => p.category === section.category).map(product => (
                 <div key={product.id} className="group cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                  <div className="aspect-[3/4] bg-clay-200 border border-clay-200 mb-3 relative overflow-hidden flex items-center justify-center group-hover:-translate-y-1.5 group-hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] transition-all duration-500 ease-out">
+                  <div className="aspect-[3/4] bg-white border border-clay-200 mb-3 relative overflow-hidden flex items-center justify-center group-hover:-translate-y-1.5 group-hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] transition-all duration-500 ease-out">
                     <img 
                       src={product.img} 
                       alt={product.name} 
-                      className="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-90 group-hover:scale-110 transition-transform duration-700 ease-out"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-clay-50/10 pointer-events-none"></div>
@@ -501,11 +501,11 @@ export default function App() {
             </button>
             
             {/* Image Section */}
-            <div className="w-full md:w-1/2 bg-clay-100 aspect-square md:aspect-auto relative">
+            <div className="w-full md:w-1/2 bg-white aspect-square md:aspect-auto relative">
               <img 
                 src={selectedProduct.img} 
                 alt={selectedProduct.name} 
-                className="w-full h-full object-cover mix-blend-multiply"
+                className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -601,11 +601,11 @@ export default function App() {
             <div className="space-y-8">
               <div className="space-y-4">
                 {cart.map((item) => (
-                  <div key={item.product.id} className="flex gap-4 border border-clay-200 p-3 bg-clay-50/30">
+                  <div key={item.product.id} className="flex gap-4 border border-clay-200 p-3 bg-white">
                     <img 
                       src={item.product.img} 
                       alt={item.product.name} 
-                      className="w-20 h-20 object-cover bg-clay-200 mb-0 mix-blend-multiply opacity-90"
+                      className="w-20 h-20 object-cover bg-clay-100 mb-0"
                       referrerPolicy="no-referrer"
                     />
                     <div className="flex-1 min-w-0">
