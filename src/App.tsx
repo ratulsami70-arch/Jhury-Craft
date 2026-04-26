@@ -26,6 +26,8 @@ const PRODUCTS = [
   { id: '5', name: 'Set 03', desc: 'Shell shape bowl + ribbed lidded jar on tray.', price: 250, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=12L5gcxqQ8BiQKIGV_-FG-IldR8fb_q42&sz=w1000' },
   { id: '6', name: 'Set 04', desc: 'Shell shape bowl + ribbed vase on tray.', price: 270, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=1T5vHx1f0paROCvjj6qokjdzpZ9qLLS0V&sz=w1000' },
   { id: '7', name: 'Set 05', desc: 'Two shell shape bowls on tray.', price: 250, category: 'gypsum', img: 'https://drive.google.com/thumbnail?id=1tbwWxw2M4WMdBHn7GTGOlF5jSsL7BRiG&sz=w1000' },
+  { id: '8', name: 'Starfish Candle', desc: 'Unique starfish shaped candle.', price: 320, category: 'candle', img: 'https://drive.google.com/thumbnail?id=1gloAkoby9uiSL5fPgkyfI8aD0YGPJtDf&sz=w1000' },
+  { id: '9', name: 'Sea Shell Candle', desc: 'Beautiful sea shell shaped candle.', price: 270, category: 'candle', img: 'https://drive.google.com/thumbnail?id=1CXp1-7b5s2TmEy0Tzf6vaHJrSBYLfE-c&sz=w1000' },
 ];
 
 const FEATURES = [
@@ -465,7 +467,8 @@ export default function App() {
 
         {[
           { title: 'Flower Pot', category: 'flower-pot' },
-          { title: 'Gypsum Decor Product', category: 'gypsum' }
+          { title: 'Gypsum Decor Product', category: 'gypsum' },
+          { title: 'Candle', category: 'candle' }
         ].map(section => (
           <div key={section.category} className="mb-10 md:mb-16">
             <div className="flex items-center gap-4 mb-6 md:mb-8">
@@ -498,7 +501,7 @@ export default function App() {
                     />
                     <div className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm px-2 py-1 border border-clay-100 rounded-full z-10">
                       <span className="text-[8px] uppercase tracking-widest text-[#8c2a50] font-bold">
-                        {product.category === 'gypsum' ? 'Gypsum' : 'Pot'}
+                        {product.category === 'gypsum' ? 'Gypsum' : product.category === 'candle' ? 'Candle' : 'Pot'}
                       </span>
                     </div>
                   </div>
@@ -523,11 +526,6 @@ export default function App() {
             </motion.div>
           </div>
         ))}
-
-        {/* Coming Soon */}
-        <div className="text-center mt-12 py-12 bg-clay-100 rounded-2xl border border-clay-200">
-           <h3 className="font-serif italic text-xl md:text-2xl text-clay-900/60">Unique candle items soon... 🕯️</h3>
-        </div>
       </section>
 
       {/* About Section */}
@@ -749,7 +747,7 @@ export default function App() {
               <div className="w-full p-6 md:p-10 flex flex-col">
                 <div>
                   <span className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c2a50] font-semibold mb-2 block">
-                    {selectedProduct.category === 'gypsum' ? 'Gypsum Decor' : 'Flower Pot'}
+                    {selectedProduct.category === 'gypsum' ? 'Gypsum Decor' : selectedProduct.category === 'candle' ? 'Candle' : 'Flower Pot'}
                   </span>
                   <h2 className="text-2xl md:text-3xl font-serif italic text-clay-900 mb-2">
                     {selectedProduct.name}
@@ -773,6 +771,12 @@ export default function App() {
                         <li>100% Handmade with pipe cleaners</li>
                         <li>Includes a cozy handmade pot</li>
                         <li>Never wilts, forever bloom</li>
+                      </>
+                    ) : selectedProduct.category === 'candle' ? (
+                      <>
+                        <li>High quality wax</li>
+                        <li>Unique shapes and aesthetic design</li>
+                        <li>Perfect for home or events</li>
                       </>
                     ) : (
                       <>
