@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, 
   HeartHandshake, 
@@ -39,10 +40,20 @@ type CartItem = {
   quantity: number;
 };
 
+type FlyingIconPayload = {
+  id: number;
+  startX: number;
+  startY: number;
+};
+
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [flyingIcons, setFlyingIcons] = useState<FlyingIconPayload[]>([]);
+  const [isCartShaking, setIsCartShaking] = useState(false);
+
+  const cartIconRef = useRef<HTMLButtonElement>(null);
   
   // Checkout Form State
   const [name, setName] = useState('');
@@ -55,12 +66,75 @@ export default function App() {
   const [appliedCoupon, setAppliedCoupon] = useState('');
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCTS[0] | null>(null);
+  
+  // Reviews State
+  const [reviews, setReviews] = useState<Record<string, { rating: number; comment: string; author: string; date: string }[]>>({
+    '1': [
+      { rating: 5, comment: 'Absolutely beautiful! The quality is amazing.', author: 'Sarah', date: '2024-03-15' },
+    ],
+    '3': [
+      { rating: 5, comment: 'Looks so aesthetic in my living room.', author: 'Raiya', date: '2024-04-10' },
+    ]
+  });
+
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState('');
+  const [newReviewAuthor, setNewReviewAuthor] = useState('');
+
+  const handleAddReview = (productId: string) => {
+    if (!newReviewComment.trim() || !newReviewAuthor.trim()) return;
+    
+    const review = {
+      rating: newReviewRating,
+      comment: newReviewComment,
+      author: newReviewAuthor,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setReviews(prev => ({
+      ...prev,
+      [productId]: [review, ...(prev[productId] || [])]
+    }));
+
+    setNewReviewComment('');
+    setNewReviewAuthor('');
+    setNewReviewRating(5);
+  };
+
+  // Body scroll lock
+  useEffect(() => {
+    if (selectedProduct || isCartOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedProduct, isCartOpen]);
 
   // Contact Form State
   const [contactName, setContactName] = useState('');
   const [contactMessage, setContactMessage] = useState('');
 
-  const addToCart = (product: typeof PRODUCTS[0]) => {
+  const addToCart = (product: typeof PRODUCTS[0], event?: React.MouseEvent) => {
+    // Animation logic
+    if (event) {
+      const iconId = Date.now();
+      setFlyingIcons(prev => [...prev, {
+        id: iconId,
+        startX: event.clientX,
+        startY: event.clientY
+      }]);
+
+      // Remove the icon after animation completes
+      setTimeout(() => {
+        setFlyingIcons(prev => prev.filter(f => f.id !== iconId));
+        setIsCartShaking(true);
+        setTimeout(() => setIsCartShaking(false), 500);
+      }, 800);
+    }
+
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -72,7 +146,9 @@ export default function App() {
       }
       return [...prev, { product, quantity: 1 }];
     });
-    setIsCartOpen(true);
+
+    // Don't open cart drawer, but maybe show a subtle toast or just let the fly animation speak
+    // setIsCartOpen(true); 
   };
 
   const removeFromCart = (id: string) => {
@@ -163,7 +239,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-clay-50 font-sans text-clay-900 flex flex-col pt-16 scroll-smooth">
+    <div className="min-h-screen bg-clay-50 font-sans text-clay-900 flex flex-col pt-16 md:pt-20 scroll-smooth">
       
       {/* Order Confirmation Toast */}
       <div 
@@ -175,8 +251,41 @@ export default function App() {
         <span className="font-medium text-sm tracking-wide">Order sent to WhatsApp!</span>
       </div>
 
+      {/* Flying Flowers Animation */}
+      <AnimatePresence>
+        {flyingIcons.map((icon) => {
+          // Calculate target position (Cart Icon)
+          let targetX = window.innerWidth - 60; // fallback
+          let targetY = 30; // fallback
+
+          if (cartIconRef.current) {
+            const rect = cartIconRef.current.getBoundingClientRect();
+            targetX = rect.left + rect.width / 2;
+            targetY = rect.top + rect.height / 2;
+          }
+
+          return (
+            <motion.div
+              key={icon.id}
+              initial={{ x: icon.startX, y: icon.startY, scale: 1, opacity: 1 }}
+              animate={{ 
+                x: targetX, 
+                y: targetY, 
+                scale: 0.2, 
+                opacity: 0,
+                rotate: 360
+              }}
+              transition={{ duration: 0.8, ease: "circIn" }}
+              className="fixed top-0 left-0 z-[100] pointer-events-none text-[#8c2a50]"
+            >
+              <Flower2 className="w-8 h-8 fill-current" />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 h-20 bg-clay-50/95 backdrop-blur-md border-b border-clay-200 z-40">
+      <nav className="fixed top-0 left-0 right-0 h-16 md:h-20 bg-clay-50/95 backdrop-blur-md border-b border-clay-200 z-40">
         <div className="max-w-6xl mx-auto px-6 md:px-12 h-full flex items-center justify-between">
           
           <div className="flex items-center gap-4">
@@ -208,23 +317,33 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
-              className="relative p-2 hover:opacity-60 transition-opacity"
+            <motion.button 
+              ref={cartIconRef}
+              animate={isCartShaking ? { 
+                scale: [1, 1.3, 1],
+                rotate: [0, -10, 10, -10, 0]
+              } : {}}
+              transition={{ duration: 0.5 }}
+              className="relative p-2 hover:bg-clay-100 rounded-full transition-colors"
               onClick={() => setIsCartOpen(true)}
             >
               <ShoppingBag className="w-5 h-5 text-clay-900" strokeWidth={1.5} />
               {cart.length > 0 && (
-                <span className="absolute top-0 right-0 bg-clay-800 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <motion.span 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-0 right-0 bg-[#8c2a50] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold"
+                >
                   {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                </span>
+                </motion.span>
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
         
         {/* Mobile menu dropdown */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-20 left-0 right-0 bg-clay-50 border-b border-clay-200 py-6 px-6 flex flex-col gap-6 text-xs tracking-widest uppercase font-medium z-40">
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-clay-50 border-b border-clay-200 py-6 px-6 flex flex-col gap-6 text-xs tracking-widest uppercase font-medium z-40">
              <a href="#hero" onClick={() => setIsMobileMenuOpen(false)} className="hover:opacity-60 transition-opacity block">Home</a>
              <a href="#shop" onClick={() => setIsMobileMenuOpen(false)} className="hover:opacity-60 transition-opacity block">Shop</a>
              <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:opacity-60 transition-opacity block">About</a>
@@ -234,46 +353,93 @@ export default function App() {
       </nav>
 
       {/* Hero Section */}
-      <section id="hero" className="bg-[#FCFAFB] min-h-[80vh] flex items-center justify-center overflow-hidden border-b border-clay-200">
-        <div className="max-w-4xl mx-auto px-6 py-20 flex flex-col items-center text-center">
+      <section id="hero" className="bg-[#FCFAFB] min-h-[60vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden border-b border-clay-200 relative">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] bg-[#F0D5E4]/20 rounded-full blur-[100px]" />
+          <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-[#EAE4F5]/30 rounded-full blur-[100px]" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#8c2a50 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center text-center relative z-20">
           
           {/* Text Content */}
           <div className="w-full flex flex-col items-center justify-center">
-            <div className="w-full space-y-6 flex flex-col items-center">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EAE4F5] text-[#7C6CA6] text-[10px] sm:text-[11px] font-bold tracking-widest uppercase">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="w-full space-y-6 flex flex-col items-center"
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EAE4F5] text-[#7C6CA6] text-[10px] sm:text-[11px] font-bold tracking-widest uppercase shadow-sm"
+              >
                 <span>✿</span>
                 Handmade in Bangladesh
-              </div>
+              </motion.div>
               
-              <p className="text-[#7C6CA6] text-[10px] sm:text-xs tracking-[0.2em] font-semibold uppercase text-center">
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="text-[#7C6CA6] text-[10px] sm:text-xs tracking-[0.2em] font-semibold uppercase text-center"
+              >
                 Finding beauty in the mud
-              </p>
+              </motion.p>
 
-              <h1 className="flex flex-col font-serif text-[3.25rem] md:text-[5rem] tracking-tight leading-[1.05] mb-2 text-center">
+              <motion.h1 
+                initial={{ opacity: 0, filter: "blur(10px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                transition={{ duration: 1, delay: 0.5 }}
+                className="flex flex-col font-serif text-[3.25rem] md:text-[5rem] tracking-tight leading-[1.05] mb-2 text-center"
+              >
                 <span className="text-[#8c2a50]">Flowers that</span>
                 <span className="text-[#D84A6E] italic">never wilt</span>
-              </h1>
+              </motion.h1>
 
-              <p className="text-[#7C6F82] text-[15px] md:text-base leading-relaxed max-w-sm pt-2 text-center">
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.7 }}
+                className="text-[#7C6F82] text-[15px] md:text-base leading-relaxed max-w-sm pt-2 text-center"
+              >
                 Beautifully handcrafted decor items — the perfect gift that stays in bloom forever.
-              </p>
+              </motion.p>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                <a href="#shop" className="px-8 py-3 rounded-full bg-[#CF4D72] text-white text-[15px] font-medium hover:bg-[#B54263] transition-colors shadow-sm">
-                  Shop Now
-                </a>
-                <a href="#about" className="px-8 py-3 rounded-full border-2 border-[#F0D5E4] text-[#CF4D72] text-[15px] font-medium hover:bg-[#F0D5E4]/30 transition-colors">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.9 }}
+                className="flex flex-wrap items-center justify-center gap-4 pt-4"
+              >
+                <motion.a 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  href="#shop" 
+                  className="px-10 py-4 rounded-full bg-[#CF4D72] text-white text-[15px] font-medium hover:bg-[#B54263] transition-colors shadow-lg active:shadow-md"
+                >
+                  Explore Collection
+                </motion.a>
+                <motion.a 
+                  whileHover={{ backgroundColor: "rgba(240, 213, 228, 0.5)" }}
+                  href="#about" 
+                  className="px-10 py-4 rounded-full border-2 border-[#F0D5E4] text-[#CF4D72] text-[15px] font-medium transition-colors"
+                >
                   Our Story
-                </a>
-              </div>
-            </div>
+                </motion.a>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Marquee Banner */}
-      <div className="bg-[#8c2a50] text-[10px] md:text-xs font-semibold tracking-widest text-white/90 overflow-hidden py-3 uppercase flex shrink-0 group hover:bg-[#a63460] transition-colors duration-300">
-        <div className="animate-marquee flex gap-12 whitespace-nowrap px-6 shrink-0 w-max min-w-max group-hover:opacity-80 group-hover:-translate-y-0.5 transition-all duration-300">
+      <div className="bg-[#8c2a50] text-[10px] md:text-xs font-semibold tracking-widest text-white/90 overflow-hidden py-3 uppercase flex shrink-0 group hover:bg-[#a63460] transition-colors duration-300 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#8c2a50] via-[#a63460] to-[#8c2a50] opacity-30 animate-pulse pointer-events-none"></div>
+        <div className="animate-marquee flex gap-12 whitespace-nowrap px-6 shrink-0 w-max min-w-max group-hover:opacity-80 group-hover:-translate-y-0.5 transition-all duration-300 relative z-10">
            {[...Array(4)].map((_, i) => (
              <div key={i} className="flex items-center gap-12">
                <span>✿</span>
@@ -292,8 +458,8 @@ export default function App() {
       </div>
 
       {/* Shop Section */}
-      <section id="shop" className="flex-1 py-16 px-6 md:px-12 max-w-6xl mx-auto w-full">
-        <div className="text-center mb-16">
+      <section id="shop" className="flex-1 py-12 md:py-16 px-6 md:px-12 max-w-6xl mx-auto w-full">
+        <div className="text-center mb-10 md:mb-16">
           <h2 className="text-[10px] tracking-widest uppercase font-semibold text-clay-800">Our Collection</h2>
         </div>
 
@@ -301,43 +467,60 @@ export default function App() {
           { title: 'Flower Pot', category: 'flower-pot' },
           { title: 'Gypsum Decor Product', category: 'gypsum' }
         ].map(section => (
-          <div key={section.category} className="mb-16">
-            <div className="flex items-center gap-4 mb-8">
+          <div key={section.category} className="mb-10 md:mb-16">
+            <div className="flex items-center gap-4 mb-6 md:mb-8">
                <h3 className="text-xl font-serif italic text-clay-900">{section.title}</h3>
                <div className="flex-1 h-px bg-clay-200"></div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {PRODUCTS.filter(p => p.category === section.category).map(product => (
-                <div key={product.id} className="group cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                  <div className="aspect-[3/4] bg-white border border-clay-200 mb-3 relative overflow-hidden flex items-center justify-center group-hover:-translate-y-1.5 group-hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] transition-all duration-500 ease-out">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {PRODUCTS.filter(p => p.category === section.category).map((product, idx) => (
+                <motion.div 
+                  key={product.id} 
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: idx * 0.1, ease: "easeOut" }}
+                  className="group cursor-pointer" 
+                  onClick={() => setSelectedProduct(product)}
+                >
+                  <div className="aspect-[3/4] bg-white border border-clay-200 mb-4 relative overflow-hidden flex items-center justify-center group-hover:-translate-y-1.5 group-hover:shadow-[0_20px_40px_-15px_rgba(140,42,80,0.12)] transition-all duration-500 ease-out rounded-xl shadow-sm">
                     <img 
                       src={product.img} 
                       alt={product.name} 
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                      className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-700 ease-out"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-0 bg-clay-50/10 pointer-events-none"></div>
-                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 border border-clay-200">
-                      <span className="text-[9px] uppercase tracking-widest text-clay-800">
-                        {product.category === 'gypsum' ? 'Gypsum Decor' : 'Flower Pot'}
+                    <div className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm px-2 py-1 border border-clay-100 rounded-full z-10">
+                      <span className="text-[8px] uppercase tracking-widest text-[#8c2a50] font-bold">
+                        {product.category === 'gypsum' ? 'Gypsum' : 'Pot'}
                       </span>
                     </div>
                   </div>
-                  <h3 className="text-sm font-medium">{product.name}</h3>
-                  <p className="text-xs text-clay-800 mt-1 italic">{product.desc}</p>
-                  <div className="flex justify-between items-center mt-4">
-                    <p className="text-base font-semibold">{product.price} Tk.</p>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                      className="text-[10px] uppercase tracking-widest font-bold bg-clay-900 text-white px-4 py-2.5 rounded-full hover:bg-black transition-colors flex items-center gap-1.5 shadow-sm"
-                    >
-                      <ShoppingBag className="w-3 h-3" />
-                      Add to Cart
-                    </button>
+
+                  <div className="px-1 space-y-1">
+                    <h3 className="text-sm font-medium text-clay-900 group-hover:text-[#8c2a50] transition-colors line-clamp-1">{product.name}</h3>
+                    <div className="flex justify-between items-center pt-1">
+                      <p className="text-base font-bold text-clay-900">{product.price} ৳</p>
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => { e.stopPropagation(); addToCart(product, e); }}
+                        className="text-[10px] uppercase tracking-widest font-bold bg-[#8c2a50] text-white px-4 py-2 rounded-full hover:bg-[#6c1e3d] transition-colors flex items-center gap-1.5 shadow-sm"
+                      >
+                        <ShoppingBag className="w-3 h-3" />
+                        Add
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         ))}
 
@@ -348,18 +531,62 @@ export default function App() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 bg-clay-50 border-t border-clay-200">
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
-          <h2 className="font-serif text-3xl italic">About Jhury Craft</h2>
-          <div className="w-8 h-px bg-clay-200 mx-auto"></div>
-          <p className="text-sm text-clay-800 leading-wider max-w-2xl mx-auto font-light">
-            We believe in finding beauty in the mud. Nestled in Dhaka, Bangladesh, Jhury Craft was born out of a love for tactile artistry and timeless design. Every single piece—from our textured clay vases to our delicate pipe cleaner flowers—is poured over with care, heart, and creativity.
-          </p>
+      <section id="about" className="py-24 bg-white border-b border-clay-100 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center gap-16">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="w-full md:w-1/2 relative"
+            >
+              <div className="aspect-square bg-clay-50 rounded-2xl overflow-hidden shadow-xl ring-1 ring-clay-200">
+                <img 
+                  src="https://images.unsplash.com/photo-1459411552884-841db9b3cc2a?auto=format&fit=crop&q=80&w=800" 
+                  alt="Crafting process" 
+                  className="w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-700"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="absolute -bottom-6 -right-6 bg-[#8c2a50] text-white p-8 rounded-full shadow-2xl hidden md:block">
+                <p className="text-[10px] uppercase tracking-widest font-bold leading-tight">Est.<br/>2023</p>
+              </div>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="w-full md:w-1/2 space-y-6"
+            >
+              <div className="flex items-center gap-2 text-[#8c2a50] mb-2">
+                <div className="h-px w-8 bg-[#8c2a50]"></div>
+                <span className="text-[11px] uppercase tracking-widest font-bold">Our Philosophy</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-serif italic text-clay-900 leading-[1.1]">
+                Crafted with <span className="text-[#8c2a50]">Patience</span> and Heart.
+              </h2>
+              <p className="text-clay-700 leading-relaxed text-lg">
+                Jhury Craft started as a small passion project in a corner of a sun-drenched room in Dhaka. We believe that every handmade object carries the energy of its creator—finding the beauty in the mud.
+              </p>
+              <div className="grid grid-cols-2 gap-8 pt-4">
+                <div>
+                  <h4 className="text-clay-900 font-bold mb-1">Authentic</h4>
+                  <p className="text-clay-600 text-sm">Every piece is uniquely hand-poured or hand-sewn.</p>
+                </div>
+                <div>
+                  <h4 className="text-clay-900 font-bold mb-1">Sustainable</h4>
+                  <p className="text-clay-600 text-sm">Minimal waste production with locally sourced materials.</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Why Jhury Craft Section */}
-      <section className="bg-[#e9e4f0] py-20 px-6 md:px-12">
+      <section className="bg-[#e9e4f0] py-12 md:py-20 px-6 md:px-12">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-4">
              <h2 className="font-serif text-3xl md:text-4xl text-[#8c2a50]">Why Jhury Craft?</h2>
@@ -392,7 +619,7 @@ export default function App() {
       </section>
 
       {/* Contact Section / Footer */}
-      <section id="contact" className="py-20 bg-[#8c2a50] text-white selection:bg-white/20">
+      <section id="contact" className="py-12 md:py-20 bg-[#8c2a50] text-white selection:bg-white/20">
         <div className="max-w-4xl mx-auto px-6 text-center space-y-12">
           <div className="space-y-3">
             <h2 className="font-serif text-4xl text-white">Order yours today 🌸</h2>
@@ -482,90 +709,173 @@ export default function App() {
       </footer>
 
       {/* Product Details Modal Overlay */}
-      {selectedProduct && (
-        <div 
-          className="fixed inset-0 bg-clay-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 md:p-6 transition-opacity"
-          onClick={() => setSelectedProduct(null)}
-        >
-          {/* Product Modal Content */}
-          <div 
-            className="bg-white max-w-4xl w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] md:max-h-[80vh] relative"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-clay-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 md:p-6"
+            onClick={() => setSelectedProduct(null)}
           >
-            {/* Close Button */}
-            <button 
-              onClick={() => setSelectedProduct(null)}
-              className="absolute top-4 right-4 z-10 bg-white/50 backdrop-blur text-clay-900 hover:bg-clay-100 p-2 rounded-full transition-colors"
+            {/* Product Modal Content */}
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white max-w-2xl w-full rounded-2xl shadow-2xl overflow-y-auto max-h-[90vh] relative"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
-            
-            {/* Image Section */}
-            <div className="w-full md:w-1/2 bg-white aspect-square md:aspect-auto relative">
-              <img 
-                src={selectedProduct.img} 
-                alt={selectedProduct.name} 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            
-            {/* Details Section */}
-            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto">
-              <div>
-                <span className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c2a50] font-semibold mb-2 block">
-                  {selectedProduct.category === 'gypsum' ? 'Gypsum Decor' : 'Flower Pot'}
-                </span>
-                <h2 className="text-2xl md:text-3xl font-serif italic text-clay-900 mb-2">
-                  {selectedProduct.name}
-                </h2>
-                <p className="text-xl md:text-2xl font-medium text-clay-800 mb-6">
-                  {selectedProduct.price} ৳
-                </p>
-                <div className="h-px w-full bg-clay-200 mb-6"></div>
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedProduct(null)}
+                className="absolute top-4 right-4 z-20 bg-white/80 backdrop-blur text-clay-900 hover:bg-clay-100 p-2 rounded-full transition-colors shadow-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              {/* Image Section */}
+              <div className="w-full bg-[#FDFBFB] aspect-square relative overflow-hidden group/modal-img flex items-center justify-center p-4">
+                <img 
+                  src={selectedProduct.img} 
+                  alt={selectedProduct.name} 
+                  className="w-full h-full object-contain transition-transform duration-700 hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               
-              <div className="flex-1">
-                <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold mb-3">Description</h4>
-                <p className="text-clay-700 leading-relaxed text-sm">
-                  {selectedProduct.desc}
-                </p>
+              {/* Details Section */}
+              <div className="w-full p-6 md:p-10 flex flex-col">
+                <div>
+                  <span className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c2a50] font-semibold mb-2 block">
+                    {selectedProduct.category === 'gypsum' ? 'Gypsum Decor' : 'Flower Pot'}
+                  </span>
+                  <h2 className="text-2xl md:text-3xl font-serif italic text-clay-900 mb-2">
+                    {selectedProduct.name}
+                  </h2>
+                  <p className="text-xl md:text-2xl font-medium text-clay-800 mb-6">
+                    {selectedProduct.price} ৳
+                  </p>
+                  <div className="h-px w-full bg-clay-200 mb-6"></div>
+                </div>
                 
-                <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold mt-8 mb-3">Details & Features</h4>
-                <ul className="space-y-2 text-sm text-clay-700 list-disc list-inside">
-                  {selectedProduct.category === 'flower-pot' ? (
-                    <>
-                      <li>100% Handmade with pipe cleaners</li>
-                      <li>Includes a cozy handmade pot</li>
-                      <li>Never wilts, forever bloom</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>Hand-poured gypsum craft</li>
-                      <li>Minimalist and aesthetic design</li>
-                      <li>Perfect for home or office setups</li>
-                    </>
-                  )}
-                  <li>Carefully packaged, ready for gifting</li>
-                </ul>
+                <div className="flex-1">
+                  <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold mb-3">Description</h4>
+                  <p className="text-clay-700 leading-relaxed text-sm">
+                    {selectedProduct.desc}
+                  </p>
+                  
+                  <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold mt-8 mb-3">Details & Features</h4>
+                  <ul className="space-y-2 text-sm text-clay-700 list-disc list-inside">
+                    {selectedProduct.category === 'flower-pot' ? (
+                      <>
+                        <li>100% Handmade with pipe cleaners</li>
+                        <li>Includes a cozy handmade pot</li>
+                        <li>Never wilts, forever bloom</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>Hand-poured gypsum craft</li>
+                        <li>Minimalist and aesthetic design</li>
+                        <li>Perfect for home or office setups</li>
+                      </>
+                    )}
+                    <li>Carefully packaged, ready for gifting</li>
+                  </ul>
+                </div>
+                
+                <div className="mt-8 pt-6 border-t border-clay-200">
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={(e) => {
+                      addToCart(selectedProduct, e);
+                      setTimeout(() => setSelectedProduct(null), 300);
+                    }}
+                    className="w-full bg-[#8c2a50] text-white py-4 flex items-center justify-center gap-2 uppercase tracking-widest text-xs font-semibold rounded-xl hover:bg-[#6c1e3d] transition-colors shadow-lg active:shadow-inner"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Add to Cart
+                  </motion.button>
+                </div>
+
+                {/* Reviews Section */}
+                <div className="mt-12 space-y-8 pb-10">
+                  <div className="flex items-center gap-4">
+                    <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold whitespace-nowrap">Customer Reviews</h4>
+                    <div className="flex-1 h-px bg-clay-100"></div>
+                  </div>
+
+                  {/* Add Review Form */}
+                  <div className="bg-clay-50/50 p-6 rounded-2xl border border-clay-100 space-y-4">
+                    <p className="text-xs font-semibold text-clay-900 uppercase tracking-tighter">Share your thoughts</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button 
+                          key={star}
+                          onClick={() => setNewReviewRating(star)}
+                          className={`transition-colors ${star <= newReviewRating ? 'text-amber-400' : 'text-clay-200'}`}
+                        >
+                          <svg className="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+                    <input 
+                      type="text"
+                      placeholder="Your Name"
+                      value={newReviewAuthor}
+                      onChange={(e) => setNewReviewAuthor(e.target.value)}
+                      className="w-full bg-white border border-clay-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8c2a50]/30 transition-colors"
+                    />
+                    <textarea 
+                      placeholder="Write your review..."
+                      rows={3}
+                      value={newReviewComment}
+                      onChange={(e) => setNewReviewComment(e.target.value)}
+                      className="w-full bg-white border border-clay-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8c2a50]/30 transition-colors resize-none"
+                    />
+                    <button 
+                      onClick={() => handleAddReview(selectedProduct.id)}
+                      className="w-full py-2.5 text-[10px] uppercase tracking-widest font-bold bg-[#8c2a50] text-white rounded-full hover:bg-[#6c1e3d] transition-colors"
+                    >
+                      Post Review
+                    </button>
+                  </div>
+
+                  {/* Review List */}
+                  <div className="space-y-6">
+                    {(!reviews[selectedProduct.id] || reviews[selectedProduct.id].length === 0) ? (
+                      <p className="text-sm text-clay-400 italic text-center py-4">No reviews yet. Be the first to share your experience!</p>
+                    ) : (
+                      reviews[selectedProduct.id].map((rev, i) => (
+                        <div key={i} className="border-b border-clay-100 pb-6 last:border-0 group">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-sm text-clay-900">{rev.author}</span>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {[...Array(5)].map((_, j) => (
+                                  <svg key={j} className={`w-3 h-3 fill-current ${j < rev.rating ? 'text-amber-400' : 'text-clay-200'}`} viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                ))}
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-clay-400 font-medium uppercase tracking-tighter">{rev.date}</span>
+                          </div>
+                          <p className="text-clay-700 text-sm leading-relaxed">{rev.comment}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
-              
-              <div className="mt-8 pt-6 border-t border-clay-200">
-                <button 
-                  onClick={() => {
-                    addToCart(selectedProduct);
-                    setSelectedProduct(null);
-                  }}
-                  className="w-full bg-[#8c2a50] text-white py-4 flex items-center justify-center gap-2 uppercase tracking-widest text-xs font-semibold rounded-xl hover:bg-[#6c1e3d] transition-colors shadow-sm"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cart Drawer Overlay */}
       {isCartOpen && (
@@ -601,11 +911,11 @@ export default function App() {
             <div className="space-y-8">
               <div className="space-y-4">
                 {cart.map((item) => (
-                  <div key={item.product.id} className="flex gap-4 border border-clay-200 p-3 bg-white">
+                  <div key={item.product.id} className="flex gap-4 border border-clay-200 p-3 bg-white rounded-md">
                     <img 
                       src={item.product.img} 
                       alt={item.product.name} 
-                      className="w-20 h-20 object-cover bg-clay-100 mb-0"
+                      className="w-20 h-20 object-contain bg-clay-50 rounded-sm mb-0 p-1"
                       referrerPolicy="no-referrer"
                     />
                     <div className="flex-1 min-w-0">
