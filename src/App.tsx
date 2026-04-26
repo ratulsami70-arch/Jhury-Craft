@@ -54,6 +54,7 @@ export default function App() {
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
   const [orderConfirmed, setOrderConfirmed] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCTS[0] | null>(null);
 
   // Contact Form State
   const [contactName, setContactName] = useState('');
@@ -307,7 +308,7 @@ export default function App() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {PRODUCTS.filter(p => p.category === section.category).map(product => (
-                <div key={product.id} className="group cursor-pointer">
+                <div key={product.id} className="group cursor-pointer" onClick={() => setSelectedProduct(product)}>
                   <div className="aspect-[3/4] bg-clay-200 border border-clay-200 mb-3 relative overflow-hidden flex items-center justify-center group-hover:-translate-y-1.5 group-hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] transition-all duration-500 ease-out">
                     <img 
                       src={product.img} 
@@ -327,7 +328,7 @@ export default function App() {
                   <div className="flex justify-between items-center mt-4">
                     <p className="text-base font-semibold">{product.price} Tk.</p>
                     <button 
-                      onClick={() => addToCart(product)}
+                      onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       className="text-[10px] uppercase tracking-widest font-bold bg-clay-900 text-white px-4 py-2.5 rounded-full hover:bg-black transition-colors flex items-center gap-1.5 shadow-sm"
                     >
                       <ShoppingBag className="w-3 h-3" />
@@ -479,6 +480,92 @@ export default function App() {
       <footer className="py-4 bg-[#6c1e3d] text-center text-white/50 text-xs">
         <p>© {new Date().getFullYear()} Jhury Craft. All rights reserved.</p>
       </footer>
+
+      {/* Product Details Modal Overlay */}
+      {selectedProduct && (
+        <div 
+          className="fixed inset-0 bg-clay-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 md:p-6 transition-opacity"
+          onClick={() => setSelectedProduct(null)}
+        >
+          {/* Product Modal Content */}
+          <div 
+            className="bg-white max-w-4xl w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] md:max-h-[80vh] relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button 
+              onClick={() => setSelectedProduct(null)}
+              className="absolute top-4 right-4 z-10 bg-white/50 backdrop-blur text-clay-900 hover:bg-clay-100 p-2 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            {/* Image Section */}
+            <div className="w-full md:w-1/2 bg-clay-100 aspect-square md:aspect-auto relative">
+              <img 
+                src={selectedProduct.img} 
+                alt={selectedProduct.name} 
+                className="w-full h-full object-cover mix-blend-multiply"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            
+            {/* Details Section */}
+            <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col overflow-y-auto">
+              <div>
+                <span className="text-[10px] md:text-xs uppercase tracking-widest text-[#8c2a50] font-semibold mb-2 block">
+                  {selectedProduct.category === 'gypsum' ? 'Gypsum Decor' : 'Flower Pot'}
+                </span>
+                <h2 className="text-2xl md:text-3xl font-serif italic text-clay-900 mb-2">
+                  {selectedProduct.name}
+                </h2>
+                <p className="text-xl md:text-2xl font-medium text-clay-800 mb-6">
+                  {selectedProduct.price} ৳
+                </p>
+                <div className="h-px w-full bg-clay-200 mb-6"></div>
+              </div>
+              
+              <div className="flex-1">
+                <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold mb-3">Description</h4>
+                <p className="text-clay-700 leading-relaxed text-sm">
+                  {selectedProduct.desc}
+                </p>
+                
+                <h4 className="text-[11px] uppercase tracking-widest text-clay-800 font-semibold mt-8 mb-3">Details & Features</h4>
+                <ul className="space-y-2 text-sm text-clay-700 list-disc list-inside">
+                  {selectedProduct.category === 'flower-pot' ? (
+                    <>
+                      <li>100% Handmade with pipe cleaners</li>
+                      <li>Includes a cozy handmade pot</li>
+                      <li>Never wilts, forever bloom</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Hand-poured gypsum craft</li>
+                      <li>Minimalist and aesthetic design</li>
+                      <li>Perfect for home or office setups</li>
+                    </>
+                  )}
+                  <li>Carefully packaged, ready for gifting</li>
+                </ul>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-clay-200">
+                <button 
+                  onClick={() => {
+                    addToCart(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                  className="w-full bg-[#8c2a50] text-white py-4 flex items-center justify-center gap-2 uppercase tracking-widest text-xs font-semibold rounded-xl hover:bg-[#6c1e3d] transition-colors shadow-sm"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cart Drawer Overlay */}
       {isCartOpen && (
